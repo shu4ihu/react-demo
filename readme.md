@@ -52,3 +52,52 @@ JSX 是 JavaScript 的一种语法扩展，允许开发者在 JavaScript 文件�
 #### 1.3.3 实现调试打包结果的环境
 
 通过 `pnpm link xxx --global` 将当前的项目链接到全局环境下，使其他项目能共享当前项目
+
+## 2 Reconciler
+
+### 2.1 Reconciler 的工作方式
+
+对于同一个节点，比较其 `ReactElement` 和 `fiberNode` ，生成子 fiberNode ，并根据比较结果生成不同的标记（插入、删除、移动......），
+不同的标记又对应不同宿主环境（浏览器环境） API 的执行
+
+![Reconciler工作方式](./imgs/reconciler/reconciler-1.png 'Reconciler工作方式')
+
+挂载 `<div></div>` ：
+
+1. jsx 经过编译时的 babel 和运行时的 jsx方法转译成 `type` 为 `div` 的 `React Element`
+2. 当前的 `React Element` 会跟对应的 `fiberNode` 比较，但是当前对应 `fiberNode` 为 `null`
+3. 比较的结果会生成一个子 `fiberNode` ，同时也会生成 `Placement` 标记
+4. `Placement` 对应插入操作，所以宿主环境 API 就会插入一个 `div` 元素到 `DOM` 中
+
+将 `<div></div>` 更新为 `<p></p>` ：
+
+1. jsx 经过 babel 和 jsx 方法转译成 `type` 为 `p` 的 `React Element`
+2. 当前的 `React Element` 会跟对应的 `fiberNode {type:'div'}` 比较
+3. 比较的结果会生成一个子 `fiberNode` ，同时会生成 `Deletion` 和 `Placement` 标记
+4. 宿主环境 API 就会先执行删除操作，将 `div` 元素删除，然后再执行插入操作，将 `p` 元素插入到 `DOM` 中
+
+当所有 React Element 比较完之后，会生成一个 fiberNode 树，一共会存在两个 fiberNode 树：
+
+- current ：与视图中真实 UI 对应的 fiberNode 树
+- workInProgress ：触发更新之后，在 reconciler 中计算的 fiberNode 树
+
+在 React 更新的过程中，current 树 和 WIP 树通过交替使用来实现更新。
+当 React 开始处理更新时，在 WIP 树进行更新和变更的计算，确定该次更新的 WIP树的结构之后，WIP 树会与 current 树进行比较，最终确定需要更新的部分，调用宿主环境 API 将需要更新的部分更新到 DOM 中。
+
+更新完成之后，WIP 树由于拥有最新的虚拟 DOM 结构，WIP 树会成为新的 current 树，而之前的 current 树则会成为下一次更新的 WIP 树。
+
+这种来回更新的技术就是双缓存技术
+
+### 2.2 JSX 消费的顺序
+
+JSX 消费的顺序，就是以 DFS 顺序遍历 JSX。
+
+```jsx
+<Card>
+	<h1>hello</h1>
+	<p>react-demo</p>
+</Card>
+```
+
+上述 `Card` 组件的消费顺序：
+![JSX 消费顺序](./imgs/reconciler/reconciler-2.png 'JSX 消费顺序')
