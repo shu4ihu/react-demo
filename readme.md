@@ -101,3 +101,102 @@ JSX 消费的顺序，就是以 DFS 顺序遍历 JSX。
 
 上述 `Card` 组件的消费顺序：
 ![JSX 消费顺序](./imgs/reconciler/reconciler-2.png 'JSX 消费顺序')
+
+### 2.3 如何触发更新
+
+常见触发更新的方式：
+
+- ReactDOM.createRoot().render() 、 老版本的 ReactDOM.render
+- this.setState
+- useState 的 dispatch 方法
+
+希望通过一套统一的更新机制，兼容上述所有触发更新的方法，同时方便后续扩展 `优先级机制`
+
+### 2.4 更新机制的组成
+
+- 代表更新的数据结构 -- Update
+- 消费 update 的数据结构 -- UpdateQueue
+
+![更新机制](./imgs/reconciler/reconciler-3.png '更新机制')
+
+实现的关键点：
+
+- 更新可以发生于任何组件，但是更新的流程是从根节点递归的
+- 需要一个统一的根节点保存通用信息
+
+### 2.5 mount 流程
+
+mount 流程的目的：
+
+- 生成 WIP FiberNode 树
+- 为树当中的 FiberNode 标记副作用 flags
+
+mount 流程的步骤：
+
+- 递： beginWork
+- 归： completeWork
+
+#### 2.5.1 beginWork 流程
+
+对如下结构的 reactElement
+
+```HTML
+<A>
+  <B />
+</A>
+```
+
+当进入 A 的 beginWork 时，通过对比 B current fiberNode 与 B reactElement，生成 B 对应的 WIP FiberNode
+
+在此过程中，最多会标记 2 类与 `结构变化` 相关的 flags：
+
+- Placement
+
+  插入：a -> ab
+
+  移动：abc -> cba
+
+- ChildDeletion
+
+  子节点删除：ul > li _ 3 -> ul > li _ 2
+
+不包含 `属性变化` 相关的 flags：
+
+- Update
+
+  `<div class='a'></div>` -> `<div class='b'></div>`
+
+HostRoot 的 beginWork 的工作流程：
+
+1. 计算状态的最新值
+2. 构造子 fiberNode
+
+HostComponent 的 beginWork 的工作流程：
+
+1. 构造子 fiberNode
+
+由于 HostText 没有子节点，所以 HostText 没有 beginWork 的工作流程
+
+#### 2.5.2 beginWork 性能优化策略
+
+考虑如下结构的 reactElement
+
+```HTML
+<div>
+  <p>hello</p>
+  <span>world</span>
+</div>
+```
+
+理论上，上述 reactElement 在 mount 流程结束之后，应该包含如下 flags：
+
+- world - Placement
+- span 标签 - Placement
+- hello - Placement
+- p 标签 - Placement
+- div 标签 - Placement
+
+### completeWork
+
+
+

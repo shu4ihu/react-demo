@@ -1,14 +1,37 @@
 import { beginWork } from './beginWork';
 import { completeWork } from './completeWork';
-import { FiberNode } from './fiber';
+import { FiberNode, createWorkInProgress } from './fiber';
+import { FiberRootNode } from './fiber';
+import { HostRoot } from './workTag';
 
 let workInProgress: FiberNode | null = null;
 
-function prepareRefreshStack(fiber: FiberNode) {
-	workInProgress = fiber;
+function prepareRefreshStack(root: FiberRootNode) {
+	workInProgress = createWorkInProgress(root.current, {});
 }
 
-function renderRoot(root: FiberNode) {
+export function scheduleUpdateOnFiber(fiber: FiberNode) {
+	// TODO 调度功能
+	const root = markUpdateFromFiberToRoot(fiber);
+	renderRoot(root);
+}
+
+function markUpdateFromFiberToRoot(fiber: FiberNode) {
+	let node = fiber;
+	let parent = node.return;
+	while (parent !== null) {
+		node = parent;
+		parent = node.return;
+	}
+
+	if (node.tag === HostRoot) {
+		return node.stateNode;
+	}
+
+	return null;
+}
+
+function renderRoot(root: FiberRootNode) {
 	// 初始化
 	prepareRefreshStack(root);
 
@@ -17,10 +40,18 @@ function renderRoot(root: FiberNode) {
 			workLoop();
 			break;
 		} catch (e) {
-			console.warn('workLoop 发生错误');
+			if (__DEV__) {
+				console.warn('workLoop 发生错误');
+			}
 			workInProgress = null;
 		}
 	} while (true);
+
+	const finishedWork = root.current.alternate;
+	root.finishedWork = finishedWork;
+
+	// wip fiberNode 树 树中的 flags
+	commitRoot(root);
 }
 
 function workLoop() {
