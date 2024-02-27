@@ -10,6 +10,11 @@ import {
 import { ReactElementType } from 'shared/ReactTypes';
 import { scheduleUpdateOnFiber } from './workLoop';
 
+/**
+ * @description 创建一个新的 FiberRootNode
+ * @param container DOM元素
+ * @returns FiberRootNode
+ */
 export function createContainer(container: Container) {
 	const hostRootFiber = new FiberNode(HostRoot, {}, null);
 	const root = new FiberRootNode(container, hostRootFiber);
@@ -18,6 +23,12 @@ export function createContainer(container: Container) {
 	return root;
 }
 
+/**
+ * @description 更新 FiberRootNode
+ * @param element ReactElement
+ * @param root FiberRootNode
+ * @returns ReactElement
+ */
 export function updateContainer(
 	element: ReactElementType | null,
 	root: FiberRootNode

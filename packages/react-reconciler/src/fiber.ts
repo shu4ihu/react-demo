@@ -71,6 +71,12 @@ export class FiberRootNode {
 	}
 }
 
+/**
+ * @description 构建 WIP 树
+ * @param current 当前 FiberNode
+ * @param pendingProps 属性
+ * @returns
+ */
 export const createWorkInProgress = (
 	current: FiberNode,
 	pendingProps: Props
@@ -100,6 +106,11 @@ export const createWorkInProgress = (
 	return wip;
 };
 
+/**
+ * @description 根据 ReactElement 创建 FiberNode
+ * @param element ReactElement
+ * @returns FiberNode
+ */
 export function createFiberFormElement(element: ReactElementType): FiberNode {
 	const { type, key, props } = element;
 	let fiberTag: WorkTag = FunctionComponent;

@@ -198,5 +198,28 @@ HostComponent 的 beginWork 的工作流程：
 
 ### completeWork
 
+流程：
 
+1. 创建或标记元素更新
+2. flags 冒泡
 
+#### flags 冒泡
+
+complete 属于递归中的归阶段，从叶子元素开始，自下而上。通过 fiberNode.subtreeFlags 来记录该 fiberNode 的所有子孙 fiberNode 上被标记的 flags，在 Render 阶段中就可以通过 subtreeFlags 快速确定该 fiberNode 所在子树是否存在副作用需要执行
+
+### commit 阶段
+
+3 个子阶段
+
+#### beforeMutation 阶段
+
+#### mutation 阶段
+
+在 mutation 阶段，根据 fiberNode.subtreeFlags 是否包含 MutationMask 中的 Flags 以及 fiberNode 是否存在子节点来决定是否向下遍历。
+如果 subtreeFlags 中有 MutationMask 包含的 Flags，则执行对应操作。
+
+- Placement：
+
+要插入节点，需要先根据当前 fiberNode 的父级 DOM 元素，递归地将子节点插入到对应的 DOM 中。
+
+#### layout 阶段

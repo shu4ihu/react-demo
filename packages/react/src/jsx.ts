@@ -4,7 +4,7 @@ import {
 	Key,
 	Ref,
 	Props,
-	ReactElement,
+	ReactElementType,
 	ElementType
 } from 'shared/ReactTypes';
 
@@ -15,7 +15,7 @@ const ReactElement = function (
 	key: Key,
 	ref: Ref,
 	props: Props
-): ReactElement {
+): ReactElementType {
 	const element = {
 		$$typeof: REACT_ELEMENT_TYPE,
 		type,
@@ -28,6 +28,13 @@ const ReactElement = function (
 	return element;
 };
 
+/**
+ * @description jsx 转换为 ReactElement
+ * @param type ElementType
+ * @param config 属性
+ * @param maybeChildren 可能存在的子元素
+ * @returns
+ */
 export const jsx = (type: ElementType, config: any, ...maybeChildren: any) => {
 	let key: Key = null;
 	const props: Props = {};
@@ -67,9 +74,13 @@ export const jsx = (type: ElementType, config: any, ...maybeChildren: any) => {
 	return ReactElement(type, key, ref, props);
 };
 
+/**
+ * @description jsx 转换为 ReactElement
+ * @param type ElementType
+ * @param config 属性
+ * @returns
+ */
 export const jsxDEV = (type: ElementType, config: any) => {
-	console.log('type', type);
-	console.log('config', config);
 	let key: Key = null;
 	const props: Props = {};
 	let ref: Ref = null;

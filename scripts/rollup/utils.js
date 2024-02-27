@@ -18,12 +18,11 @@ export function resolvePkgPath(pkgName, isDist) {
 export function getPackageJson(pkgName) {
 	const path = `${resolvePkgPath(pkgName)}/package.json`;
 	const str = fs.readFileSync(path, { encoding: 'utf-8' });
-
 	return JSON.parse(str);
 }
 
 export function getBaseRollupPlugins(
-	{ alias = { __DEV__: true } },
+	{ alias = { __DEV__: true, preventAssignment: true } } = {},
 	{ typescript = {} } = {}
 ) {
 	return [replace(alias), cjs(), ts(typescript)];

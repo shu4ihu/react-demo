@@ -67,6 +67,11 @@ function updateHostComponent(wip: FiberNode) {
 	return wip.child;
 }
 
+/**
+ * 协调子节点，通过判断 current 是否存在，来决定是更新还是挂载
+ * @param wip 当前工作中的 Fiber 节点
+ * @param children 子节点
+ */
 function reconcileChildren(wip: FiberNode, children?: ReactElementType) {
 	const current = wip.alternate;
 
