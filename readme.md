@@ -223,3 +223,51 @@ complete 属于递归中的归阶段，从叶子元素开始，自下而上。�
 要插入节点，需要先根据当前 fiberNode 的父级 DOM 元素，递归地将子节点插入到对应的 DOM 中。
 
 #### layout 阶段
+
+## Function Component
+
+## Hook
+
+### 数据共享层
+
+为了能让 hook 拥有感知上下文的能力，React 在不同的上下文中调用的 hook 不是同一个函数。
+
+如下图所示，在不同生命周期或 hook 上下文中都有一个属于它本身的 hooks 集合，这些集合共同存放于 React 内部的数据共享层，然后再由 React 统一向外抛出。
+
+同时，为了让 hook 能感知上下文，需要在 reconciler 中实现 hook，然后在 React 中导出，即从 reconciler package 跨越到 react package 中。
+
+所以需要通过一个内部的数据共享层以 hook 集合的形式来管理 hook，当不同的阶段调用 hook，对应阶段的 hook 集合就会指向内部数据共享层，React 调用的并不是 hook 的实现，而是当前阶段的 hook 集合
+
+![](./imgs/hook/hook-1.png)
+
+**注意：**
+
+**增加内部数据共享层，意味着 reconciler 和 React 产生关联**
+
+如果两个包产生关联，需要考虑，两者的代码是打包在一起还是分开？
+
+如果打包在一起，在打包之后的 ReactDOM 中会包含 React 的代码，那么 ReactDOM 中也会包含一个内部数据共享层，React 中也会包含一个内部数据共享层，两者并不是同一个数据共享层。
+
+所以希望两者分开打包。
+
+### Hook 数据结构
+
+fiberNode 中可用的字段
+
+- memoizedState
+- updateQueue
+
+![](./imgs/hook/hook-2.png)
+
+对于 FC 对应的 fiberNode，有两层数据
+
+- fiberNode.memoizedState 对应 hooks 链表
+- 链表中每个 hook 对应自身的数据
+
+### 实现 useState
+
+包括两个任务
+
+- 实现 mount 时的 useState
+- 实现 dispatch 方法，并且接入现有流程中
+

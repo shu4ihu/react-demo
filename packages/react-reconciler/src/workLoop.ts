@@ -14,6 +14,7 @@ let workInProgress: FiberNode | null = null;
  */
 function prepareRefreshStack(root: FiberRootNode) {
 	workInProgress = createWorkInProgress(root.current, {});
+	console.log('workInProgress', workInProgress);
 }
 
 /**
@@ -38,7 +39,6 @@ function markUpdateFromFiberToRoot(fiber: FiberNode) {
 		node = parent;
 		parent = node.return;
 	}
-
 	if (node.tag === HostRoot) {
 		return node.stateNode;
 	}
@@ -56,6 +56,7 @@ function renderRoot(root: FiberRootNode) {
 
 	do {
 		try {
+			// 执行工作流程
 			workLoop();
 			break;
 		} catch (e) {
@@ -69,7 +70,6 @@ function renderRoot(root: FiberRootNode) {
 	const finishedWork = root.current.alternate;
 	root.finishedWork = finishedWork;
 
-	// wip fiberNode 树 树中的 flags
 	commitRoot(root);
 }
 
@@ -81,7 +81,7 @@ function renderRoot(root: FiberRootNode) {
 function commitRoot(root: FiberRootNode) {
 	// finishedWork -- render 阶段构建的 wip Fiber Tree 的 hostRootFiber
 	const finishedWork = root.finishedWork;
-
+	console.log(finishedWork);
 	if (finishedWork === null) {
 		return;
 	}
@@ -102,8 +102,12 @@ function commitRoot(root: FiberRootNode) {
 	// root flags
 	const rootHasEffect = (finishedWork.flags & MutationMask) !== NoFlags;
 
+	console.log(finishedWork.subtreeFlags, finishedWork.flags, finishedWork);
+	console.log(rootHasEffect, subtreeHasEffect);
+
 	if (rootHasEffect || subtreeHasEffect) {
 		// beforeMutation
+
 		// mutation -- Placement
 		commitMutationEffects(finishedWork);
 		root.current = finishedWork;
@@ -128,8 +132,12 @@ function workLoop() {
  * @param fiber FiberNode
  */
 function performUnitOfWork(fiber: FiberNode) {
+	console.warn('beginWork 开始');
+	console.log('当前 beginWork 处理的 fiberNode', fiber.type, fiber);
 	const next = beginWork(fiber);
+	console.log('beginWork 处理后的 fiberNode', next?.type, next);
 	fiber.memorizedProps = fiber.pendingProps;
+	console.log('fiber.memorizedProps', fiber.memorizedProps);
 
 	if (next === null) {
 		completeUnitOfWork(fiber);
@@ -147,6 +155,9 @@ function completeUnitOfWork(fiber: FiberNode) {
 	let node: FiberNode | null = fiber;
 
 	do {
+		if (__DEV__) {
+			console.warn('completeWork 开始', node.type);
+		}
 		completeWork(node);
 		const sibling = node.sibling;
 

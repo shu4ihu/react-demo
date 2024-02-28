@@ -1,5 +1,6 @@
 import { Action } from 'shared/ReactTypes';
 import { Update } from './fiberFlags';
+import { Dispatch } from 'react/src/currentDispatcher';
 
 export interface Update<State> {
 	action: Action<State>;
@@ -9,6 +10,7 @@ export interface UpdateQueue<State> {
 	shared: {
 		pending: Update<State> | null;
 	};
+	dispatch: Dispatch<State> | null;
 }
 
 /**
@@ -26,12 +28,13 @@ export const createUpdate = <State>(action: Action<State>): Update<State> => {
  * @description 创建一个新的更新队列
  * @returns 更新队列
  */
-export const createUpdateQueue = <Action>() => {
+export const createUpdateQueue = <State>() => {
 	return {
 		shared: {
 			pending: null
-		}
-	} as UpdateQueue<Action>;
+		},
+		dispatch: null
+	} as UpdateQueue<State>;
 };
 
 /**
@@ -39,11 +42,13 @@ export const createUpdateQueue = <Action>() => {
  * @param updateQueue 需要入队的更新队列
  * @param update 需要入队的更新操作
  */
-export const enqueueUpdate = <Action>(
-	updateQueue: UpdateQueue<Action>,
-	update: Update<Action>
+export const enqueueUpdate = <State>(
+	updateQueue: UpdateQueue<State>,
+	update: Update<State>
 ) => {
+	console.log(updateQueue.shared.pending, update, 'before enqueue');
 	updateQueue.shared.pending = update;
+	console.log(updateQueue.shared.pending, update, 'after enqueue');
 };
 
 /**
@@ -55,9 +60,9 @@ export const enqueueUpdate = <Action>(
 export const processUpdateQueue = <State>(
 	baseState: State,
 	pendingUpdate: Update<State> | null
-): { memorizedState: State } => {
+): { memoizedState: State } => {
 	const result: ReturnType<typeof processUpdateQueue<State>> = {
-		memorizedState: baseState
+		memoizedState: baseState
 	};
 
 	// 如果存在待处理更新操作，则执行更新操作
@@ -65,10 +70,10 @@ export const processUpdateQueue = <State>(
 		const action = pendingUpdate.action;
 		if (action instanceof Function) {
 			// 如果更新操作是函数，则执行函数并将执行结果作为新的状态
-			result.memorizedState = action(baseState);
+			result.memoizedState = action(baseState);
 		} else {
 			// 如果更新操作不是函数，则直接将更新操作作为新的状态
-			result.memorizedState = action;
+			result.memoizedState = action;
 		}
 	}
 

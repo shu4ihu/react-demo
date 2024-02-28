@@ -75,6 +75,7 @@ const commitPlacement = (finishedWork: FiberNode) => {
 	// parent DOM
 	// 执行 Placement 操作，需要先找到 parent DOM
 	const hostParent = getHostParent(finishedWork);
+	console.log('hostParent', hostParent);
 	// finishedWork ~ DOM appendChild -> parent
 	if (hostParent !== null) {
 		appendPlacementNodeIntoContainer(finishedWork, hostParent);

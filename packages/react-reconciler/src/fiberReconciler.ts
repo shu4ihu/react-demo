@@ -40,8 +40,7 @@ export function updateContainer(
 		hostRootFiber.updateQueue as UpdateQueue<ReactElementType | null>,
 		update
 	);
-
 	scheduleUpdateOnFiber(hostRootFiber);
-
+	console.log('更新后的根节点', hostRootFiber, element);
 	return element;
 }

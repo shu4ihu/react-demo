@@ -5,7 +5,12 @@ import {
 	createTextInstance
 } from 'hostConfig';
 import { FiberNode } from './fiber';
-import { HostComponent, HostRoot, HostText } from './workTag';
+import {
+	FunctionComponent,
+	HostComponent,
+	HostRoot,
+	HostText
+} from './workTag';
 import { NoFlags } from './fiberFlags';
 
 /** 递归中的归阶段，根据类型执行对应的操作
@@ -17,6 +22,7 @@ export const completeWork = (wip: FiberNode) => {
 	const newProps = wip.pendingProps;
 	const current = wip.alternate;
 
+	console.log('wip tag', wip.tag);
 	switch (wip.tag) {
 		case HostComponent:
 			// 如果 current 存在且 stateNode 存在，表示是更新操作，否则是挂载操作
@@ -45,6 +51,10 @@ export const completeWork = (wip: FiberNode) => {
 			bubbleProperties(wip);
 			return null;
 		case HostRoot:
+			bubbleProperties(wip);
+			return null;
+		case FunctionComponent:
+			bubbleProperties(wip);
 			return null;
 		default:
 			if (__DEV__) {
@@ -98,14 +108,27 @@ function appendAllChildren(parent: Container, wip: FiberNode) {
 function bubbleProperties(wip: FiberNode) {
 	let subtreeFlags = NoFlags;
 	let child = wip.child;
-
+	console.log(
+		'wip',
+		wip,
+		'child',
+		child,
+		'wip.subtreeFlags',
+		wip.subtreeFlags,
+		'wip.flags',
+		wip.flags
+	);
 	while (child !== null) {
+		console.log('child 不为空进入收集 flags 循环');
 		subtreeFlags |= child.subtreeFlags;
 		subtreeFlags |= child.flags;
-
+		console.log('child 子树收集到的 flags', child.subtreeFlags.toString(2));
+		console.log('child 本身的flags', child.flags.toString(2));
+		console.log('收集到的 flags', subtreeFlags.toString(2));
 		child.return = wip;
 		child = child.sibling;
 	}
-
+	console.log(subtreeFlags, 'subtreeFlags');
 	wip.subtreeFlags |= subtreeFlags;
+	console.log(wip.subtreeFlags, 'wip.subtreeFlags', wip);
 }
