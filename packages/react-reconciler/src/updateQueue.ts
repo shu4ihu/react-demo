@@ -46,9 +46,9 @@ export const enqueueUpdate = <State>(
 	updateQueue: UpdateQueue<State>,
 	update: Update<State>
 ) => {
-	console.log(updateQueue.shared.pending, update, 'before enqueue');
+	// console.log(updateQueue.shared.pending, update, 'before enqueue');
 	updateQueue.shared.pending = update;
-	console.log(updateQueue.shared.pending, update, 'after enqueue');
+	// console.log(updateQueue.shared.pending, update, 'after enqueue');
 };
 
 /**
@@ -64,7 +64,6 @@ export const processUpdateQueue = <State>(
 	const result: ReturnType<typeof processUpdateQueue<State>> = {
 		memoizedState: baseState
 	};
-
 	// 如果存在待处理更新操作，则执行更新操作
 	if (pendingUpdate !== null) {
 		const action = pendingUpdate.action;

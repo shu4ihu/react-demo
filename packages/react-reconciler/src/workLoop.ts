@@ -14,7 +14,7 @@ let workInProgress: FiberNode | null = null;
  */
 function prepareRefreshStack(root: FiberRootNode) {
 	workInProgress = createWorkInProgress(root.current, {});
-	console.log('workInProgress', workInProgress);
+	// console.log('workInProgress', workInProgress);
 }
 
 /**
@@ -81,7 +81,7 @@ function renderRoot(root: FiberRootNode) {
 function commitRoot(root: FiberRootNode) {
 	// finishedWork -- render 阶段构建的 wip Fiber Tree 的 hostRootFiber
 	const finishedWork = root.finishedWork;
-	console.log(finishedWork);
+	// console.log(finishedWork);
 	if (finishedWork === null) {
 		return;
 	}
@@ -102,8 +102,8 @@ function commitRoot(root: FiberRootNode) {
 	// root flags
 	const rootHasEffect = (finishedWork.flags & MutationMask) !== NoFlags;
 
-	console.log(finishedWork.subtreeFlags, finishedWork.flags, finishedWork);
-	console.log(rootHasEffect, subtreeHasEffect);
+	// console.log(finishedWork.subtreeFlags, finishedWork.flags, finishedWork);
+	// console.log(rootHasEffect, subtreeHasEffect);
 
 	if (rootHasEffect || subtreeHasEffect) {
 		// beforeMutation
@@ -133,11 +133,11 @@ function workLoop() {
  */
 function performUnitOfWork(fiber: FiberNode) {
 	console.warn('beginWork 开始');
-	console.log('当前 beginWork 处理的 fiberNode', fiber.type, fiber);
+	// console.log('当前 beginWork 处理的 fiberNode', fiber.type, fiber);
 	const next = beginWork(fiber);
-	console.log('beginWork 处理后的 fiberNode', next?.type, next);
+	// console.log('beginWork 处理后的 fiberNode', next?.type, next);
 	fiber.memorizedProps = fiber.pendingProps;
-	console.log('fiber.memorizedProps', fiber.memorizedProps);
+	// console.log('fiber.memorizedProps', fiber.memorizedProps);
 
 	if (next === null) {
 		completeUnitOfWork(fiber);
@@ -153,7 +153,6 @@ function performUnitOfWork(fiber: FiberNode) {
  */
 function completeUnitOfWork(fiber: FiberNode) {
 	let node: FiberNode | null = fiber;
-
 	do {
 		if (__DEV__) {
 			console.warn('completeWork 开始', node.type);

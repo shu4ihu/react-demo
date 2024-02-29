@@ -196,24 +196,24 @@ HostComponent 的 beginWork 的工作流程：
 - p 标签 - Placement
 - div 标签 - Placement
 
-### completeWork
+### 2.6 completeWork
 
 流程：
 
 1. 创建或标记元素更新
 2. flags 冒泡
 
-#### flags 冒泡
+#### 2.6.1 flags 冒泡
 
 complete 属于递归中的归阶段，从叶子元素开始，自下而上。通过 fiberNode.subtreeFlags 来记录该 fiberNode 的所有子孙 fiberNode 上被标记的 flags，在 Render 阶段中就可以通过 subtreeFlags 快速确定该 fiberNode 所在子树是否存在副作用需要执行
 
-### commit 阶段
+### 2.7 commit 阶段
 
 3 个子阶段
 
-#### beforeMutation 阶段
+#### 2.7.1 beforeMutation 阶段
 
-#### mutation 阶段
+#### 2.7.2 mutation 阶段
 
 在 mutation 阶段，根据 fiberNode.subtreeFlags 是否包含 MutationMask 中的 Flags 以及 fiberNode 是否存在子节点来决定是否向下遍历。
 如果 subtreeFlags 中有 MutationMask 包含的 Flags，则执行对应操作。
@@ -222,13 +222,13 @@ complete 属于递归中的归阶段，从叶子元素开始，自下而上。�
 
 要插入节点，需要先根据当前 fiberNode 的父级 DOM 元素，递归地将子节点插入到对应的 DOM 中。
 
-#### layout 阶段
+#### 2.7.3 layout 阶段
 
-## Function Component
+### 2.8 Function Component
 
-## Hook
+### 2.9 Hook
 
-### 数据共享层
+#### 2.9.1 数据共享层
 
 为了能让 hook 拥有感知上下文的能力，React 在不同的上下文中调用的 hook 不是同一个函数。
 
@@ -250,7 +250,7 @@ complete 属于递归中的归阶段，从叶子元素开始，自下而上。�
 
 所以希望两者分开打包。
 
-### Hook 数据结构
+#### 2.9.2 Hook 数据结构
 
 fiberNode 中可用的字段
 
@@ -264,10 +264,61 @@ fiberNode 中可用的字段
 - fiberNode.memoizedState 对应 hooks 链表
 - 链表中每个 hook 对应自身的数据
 
-### 实现 useState
+#### 2.9.3 实现 useState
 
 包括两个任务
 
 - 实现 mount 时的 useState
 - 实现 dispatch 方法，并且接入现有流程中
 
+## 2.10 update
+
+update 流程与 mount 流程的区别
+
+对于 beginWork：
+
+- 需要处理 ChildDeletion 的情况
+- 需要处理节点移动的情况 (abc -> bca)
+
+对于 completeWork：
+
+- 需要处理 HostText 内容更新的情况
+- 需要处理 HostComponent 属性变化的情况
+
+对于 commitWork：
+
+- 需要处理 ChildDeletion ，遍历被删除的子树
+
+对于 useState：
+
+- 实现相对于 mountState 的 updateState
+
+### 2.10.1 beginWork
+
+#### 单节点处理
+
+单节点处理需要处理的情况：
+
+- singleElement
+- singleTextNode
+
+处理思路：
+
+1. 比较是否可以复用 current fiber
+   1. 比较 key，如果 key 不同，不能复用
+   2. 比较 type，如果 type 不同，不能复用
+   3. key 、 type 都相同，可复用
+2. 不能复用，需要重新构建一个新的 fiber，可复用则复用
+
+**注意：**
+**对于 wip 、 current 这两个 fiberNode ，即使反复更新，这会复用这两个 fiberNode**
+
+### 2.10.2 commit 阶段
+
+对于标记 ChildDeletion 的子树，由于子树中：
+
+- 对于 FC ，需要处理 useEffect unMount，解绑 ref
+- 对于 HostComponent，需要解绑 ref
+- 对于子树的 `根 HostComponent`，需要移除 DOM
+
+所以，需要实现遍历 ChildDeletion 子树的流程

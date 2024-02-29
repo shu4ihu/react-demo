@@ -11,5 +11,3 @@ export const Update = 0b0000010;
 export const ChildDeletion = 0b0000100;
 
 export const MutationMask = Placement | Update | ChildDeletion;
-
-console.log(NoFlags, Placement, Update, ChildDeletion, MutationMask);

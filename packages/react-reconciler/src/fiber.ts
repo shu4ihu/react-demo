@@ -4,24 +4,41 @@ import { Flags, NoFlags } from './fiberFlags';
 import { Container } from 'hostConfig';
 
 export class FiberNode {
+	// 类型
 	type: any;
+	// FiberNode 类型标志
 	tag: WorkTag;
+	// 即将引用于 FiberNode 的属性
 	pendingProps: Props;
+	// 用于识别 FiberNode 的唯一标识
 	key: Key;
+	// 宿主 DOM 信息节点
 	stateNode: any;
+	// 引用
 	ref: Ref;
 
+	// 父 FiberNode
 	return: FiberNode | null;
+	// 兄弟 FiberNode
 	sibling: FiberNode | null;
+	// 子 FiberNode
 	child: FiberNode | null;
+	// 当前兄弟中序列号
 	index: number;
 
+	// 记录下的节点的状态和属性
 	memorizedProps: Props | null;
 	memoizedState: any;
+	// 当前 FiberNode 的备份，双缓冲技术
 	alternate: FiberNode | null;
+	// 更新队列
 	updateQueue: unknown;
+	// 操作标志
 	flags: Flags;
+	// 子树操作标志
 	subtreeFlags: Flags;
+	// 待删除节点集合
+	deletions: FiberNode[] | null;
 
 	constructor(tag: WorkTag, pendingProps: Props, key: Key) {
 		// 实例
@@ -55,12 +72,16 @@ export class FiberNode {
 		// 副作用
 		this.flags = NoFlags;
 		this.subtreeFlags = NoFlags;
+		this.deletions = null;
 	}
 }
 
 export class FiberRootNode {
+	// 目标宿主容器
 	container: Container;
+	// 当前正在使用的 Fiber 树的根节点
 	current: FiberNode;
+	// 已完成工作，但是未提交到的 Fiber 树的根节点
 	finishedWork: FiberNode | null;
 
 	constructor(container: Container, hostRootFiber: FiberNode) {
@@ -88,6 +109,7 @@ export const createWorkInProgress = (
 		wip = new FiberNode(current.tag, pendingProps, current.key);
 		wip.type = current.type;
 		wip.stateNode = current.stateNode;
+
 		wip.alternate = current;
 		current.alternate = wip;
 	} else {
@@ -95,6 +117,7 @@ export const createWorkInProgress = (
 		wip.pendingProps = pendingProps;
 		wip.flags = NoFlags;
 		wip.subtreeFlags = NoFlags;
+		wip.deletions = null;
 	}
 
 	wip.type = current.type;

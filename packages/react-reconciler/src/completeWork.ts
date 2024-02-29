@@ -11,7 +11,11 @@ import {
 	HostRoot,
 	HostText
 } from './workTag';
-import { NoFlags } from './fiberFlags';
+import { NoFlags, Update } from './fiberFlags';
+
+function markUpdate(fiber: FiberNode) {
+	fiber.flags |= Update;
+}
 
 /** 递归中的归阶段，根据类型执行对应的操作
  * @description
@@ -22,7 +26,7 @@ export const completeWork = (wip: FiberNode) => {
 	const newProps = wip.pendingProps;
 	const current = wip.alternate;
 
-	console.log('wip tag', wip.tag);
+	// console.log('wip tag', wip.tag);
 	switch (wip.tag) {
 		case HostComponent:
 			// 如果 current 存在且 stateNode 存在，表示是更新操作，否则是挂载操作
@@ -42,7 +46,12 @@ export const completeWork = (wip: FiberNode) => {
 		case HostText:
 			// HostText 类型：文本节点的内容就是它所代表的数据，所以不包含子节点，它的更新只涉及到文本内容的更新
 			if (current !== null && wip.stateNode) {
-				// update
+				// update 阶段执行的操作
+				const oldText = current.memorizedProps.content;
+				const newText = newProps.content;
+				if (oldText !== newText) {
+					markUpdate(wip);
+				}
 			} else {
 				// 构建 DOM
 				const instance = createTextInstance(newProps.content);
@@ -108,27 +117,27 @@ function appendAllChildren(parent: Container, wip: FiberNode) {
 function bubbleProperties(wip: FiberNode) {
 	let subtreeFlags = NoFlags;
 	let child = wip.child;
-	console.log(
-		'wip',
-		wip,
-		'child',
-		child,
-		'wip.subtreeFlags',
-		wip.subtreeFlags,
-		'wip.flags',
-		wip.flags
-	);
+	// console.log(
+	// 	'wip',
+	// 	wip,
+	// 	'child',
+	// 	child,
+	// 	'wip.subtreeFlags',
+	// 	wip.subtreeFlags,
+	// 	'wip.flags',
+	// 	wip.flags
+	// );
 	while (child !== null) {
-		console.log('child 不为空进入收集 flags 循环');
+		// console.log('child 不为空进入收集 flags 循环');
 		subtreeFlags |= child.subtreeFlags;
 		subtreeFlags |= child.flags;
-		console.log('child 子树收集到的 flags', child.subtreeFlags.toString(2));
-		console.log('child 本身的flags', child.flags.toString(2));
-		console.log('收集到的 flags', subtreeFlags.toString(2));
+		// console.log('child 子树收集到的 flags', child.subtreeFlags.toString(2));
+		// console.log('child 本身的flags', child.flags.toString(2));
+		// console.log('收集到的 flags', subtreeFlags.toString(2));
 		child.return = wip;
 		child = child.sibling;
 	}
-	console.log(subtreeFlags, 'subtreeFlags');
+	// console.log(subtreeFlags, 'subtreeFlags');
 	wip.subtreeFlags |= subtreeFlags;
-	console.log(wip.subtreeFlags, 'wip.subtreeFlags', wip);
+	// console.log(wip.subtreeFlags, 'wip.subtreeFlags', wip);
 }

@@ -55,7 +55,7 @@ function updateHostRoot(wip: FiberNode): FiberNode | null {
 	// 将更新队列的 pending 属性置为 null，表示更新操作已被处理
 	updateQueue.shared.pending = null;
 
-	console.log(pending, 'pending');
+	// console.log(pending, 'pending');
 
 	// 处理更新队列中的更新操作，获取处理后的状态
 	const { memoizedState } = processUpdateQueue(baseState, pending);
@@ -72,7 +72,7 @@ function updateHostRoot(wip: FiberNode): FiberNode | null {
 }
 
 /**
- * 更新根节点（HostComponent）的逻辑
+ * 更新节点（HostComponent）的逻辑
  * @param wip 当前工作中的 Fiber 节点，表示根节点（HostComponent）
  * @returns 更新后的子节点
  */
@@ -90,10 +90,9 @@ function updateHostComponent(wip: FiberNode) {
  */
 function reconcileChildren(wip: FiberNode, children?: ReactElementType) {
 	const current = wip.alternate;
-
 	if (current !== null) {
 		// update
-		wip.child = reconcileChildFibers(wip, current?.child, children);
+		wip.child = reconcileChildFibers(wip, current.child, children);
 	} else {
 		// mount
 		wip.child = mountChildFibers(wip, null, children);
