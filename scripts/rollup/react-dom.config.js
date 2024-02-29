@@ -15,12 +15,43 @@ export default [
 		output: [
 			{
 				file: `${pkgDistPath}/index.js`,
-				name: 'index.js',
+				name: 'ReactDOM',
 				format: 'umd'
 			},
 			{
 				file: `${pkgDistPath}/client.js`,
-				name: 'client.js',
+				name: 'client',
+				format: 'umd'
+			}
+		],
+		external: [...Object.keys(peerDependencies)],
+		plugins: [
+			...getBaseRollupPlugins(),
+			alias({
+				entries: { hostConfig: `${pkgPath}/src/hostConfig.ts` }
+			}),
+			generatePackageJson({
+				inputFolder: pkgPath,
+				outputFolder: pkgDistPath,
+				baseContents: ({ name, description, version }) => ({
+					name,
+					description,
+					version,
+					peerDependencies: {
+						react: version
+					},
+					main: 'index.js'
+				})
+			})
+		]
+	},
+	// React-test-utils
+	{
+		input: `${pkgPath}/test-utils.ts`,
+		output: [
+			{
+				file: `${pkgDistPath}/test-utils.js`,
+				name: 'testUtils.js',
 				format: 'umd'
 			}
 		],

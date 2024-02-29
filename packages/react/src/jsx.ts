@@ -28,6 +28,14 @@ const ReactElement = function (
 	return element;
 };
 
+export function isValidElement(object: any) {
+	return (
+		typeof object === 'object' &&
+		object !== null &&
+		object.$$typeof === REACT_ELEMENT_TYPE
+	);
+}
+
 /**
  * @description jsx 转换为 ReactElement
  * @param type ElementType

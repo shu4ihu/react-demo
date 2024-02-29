@@ -13,7 +13,7 @@ export function createRoot(container: Container) {
 	return {
 		render(element: ReactElementType) {
 			console.log('渲染', element);
-			updateContainer(element, root);
+			return updateContainer(element, root);
 		}
 	};
 }
