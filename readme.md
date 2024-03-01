@@ -271,7 +271,7 @@ fiberNode 中可用的字段
 - 实现 mount 时的 useState
 - 实现 dispatch 方法，并且接入现有流程中
 
-## 2.10 update
+### 2.10 update
 
 update 流程与 mount 流程的区别
 
@@ -293,9 +293,9 @@ update 流程与 mount 流程的区别
 
 - 实现相对于 mountState 的 updateState
 
-### 2.10.1 beginWork
+#### 2.10.1 beginWork
 
-#### 单节点处理
+**单节点处理**
 
 单节点处理需要处理的情况：
 
@@ -322,3 +322,90 @@ update 流程与 mount 流程的区别
 - 对于子树的 `根 HostComponent`，需要移除 DOM
 
 所以，需要实现遍历 ChildDeletion 子树的流程
+
+# 3 事件系统
+
+事件系统来源于浏览器事件模型，隶属于 React DOM，在实现过程中，要做到对 Reconciler 0 侵入
+
+实现事件系统需要考虑：
+
+- 模拟实现浏览器事件捕获，冒泡流程
+- 实现合成事件对象
+- 方便后续扩展
+
+## 3.1 实现 ReactDOM 与 Reconciler 对接
+
+将事件回调保存在 DOM 的 props 中，在 props 出现变化的时候，重新保存（对接）
+
+- 创建 DOM
+  completeWork 中会针对当前 fiber node 的类型为其创建实例，可以在构建实例的过程中将事件回调保存到对应的 props 中
+- 更新属性时
+
+**注意：为什么下述代码在收集路径的过程中，对应 capture 和 bubble 使用两种不同的数组新增元素的方式**
+
+```javascript
+function collectPaths(
+	targetElement: DOMElement,
+	container: Container,
+	eventType: string
+) {
+	const paths: Paths = {
+		capture: [],
+		bubble: []
+	};
+
+	while (targetElement !== null && targetElement !== container) {
+		// 收集
+		const elementProps = targetElement[elementPropsKey];
+		if (elementProps) {
+			//  click -> onClick / onClickCapture
+			const callbackNameList = getEventCallbackNameFromEventType(eventType);
+
+			if (callbackNameList) {
+				callbackNameList.forEach((callbackName, i) => {
+					const eventCallback = elementProps[callbackName];
+					if (eventCallback) {
+						if (i === 0) {
+							paths.capture.unshift(eventCallback);
+						} else {
+							paths.bubble.push(eventCallback);
+						}
+					}
+				});
+			}
+		}
+		targetElement = targetElement.parentNode as DOMElement;
+	}
+
+	return paths;
+}
+```
+
+举例说明，有以下这样的结构 DOMElement
+
+```jsx
+<div onClickCapture="xxx" onClick="xxx">
+	<div onClickCapture="xxx" onClick="xxx">
+		<p onClick="xxx"></p>
+	</div>
+</div>
+```
+
+收集路径的过程中，会先在 p 中开始收集，然后向外冒泡，所以 capture 和 bubble 的变化应该这样的
+
+```
+capture []
+bubble [p onClick]
+```
+
+```
+capture [div onClickCapture]
+bubble [p onClick, div onClick]
+```
+
+```
+capture [container onClickCapture, div onClickCapture]
+bubble [p onClick, div onClick, container onClick]
+```
+
+使用 unshift 插入的 capture，能保证在遍历时的 DOMElement 是从上到下，这与捕获的思想是一致的。反之，使用 push 插入的 bubble 也是如此。

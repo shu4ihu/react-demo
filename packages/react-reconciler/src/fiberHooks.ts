@@ -50,6 +50,8 @@ export function renderWithHooks(wip: FiberNode) {
 
 	// 重置，清理当前的渲染上下文
 	currentlyRenderingFiber = null;
+	workInProgressHook = null;
+	currentHook = null;
 
 	// 返回渲染后的子组件
 	return children;

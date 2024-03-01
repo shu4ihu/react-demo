@@ -12,6 +12,7 @@ import {
 	HostText
 } from './workTag';
 import { NoFlags, Update } from './fiberFlags';
+import { updateFiberProps } from 'react-dom/src/SyntheticEvent';
 
 function markUpdate(fiber: FiberNode) {
 	fiber.flags |= Update;
@@ -32,11 +33,14 @@ export const completeWork = (wip: FiberNode) => {
 			// 如果 current 存在且 stateNode 存在，表示是更新操作，否则是挂载操作
 			if (current !== null && wip.stateNode) {
 				// update
+				// 判断 props 是否变化，如果变化则标记更新
+				// 如果需要监听所有 props 的变化比较麻烦，所以这里不实现，直接更新
+				updateFiberProps(wip.stateNode, wip.pendingProps);
 			} else {
 				// mount
 				// 构建 DOM，然后将 DOM 插入到 DOM 树中
 				// const instance = createInstance(wip.type, newProps);
-				const instance = createInstance(wip.type);
+				const instance = createInstance(wip.type, newProps);
 				appendAllChildren(instance, wip);
 				wip.stateNode = instance;
 			}

@@ -1,5 +1,7 @@
 import { FiberNode } from 'react-reconciler/src/fiber';
-import { HostText } from 'react-reconciler/src/workTag';
+import { HostComponent, HostText } from 'react-reconciler/src/workTag';
+import { updateFiberProps } from './SyntheticEvent';
+import { Props } from 'shared/ReactTypes';
 
 export type Container = Element;
 export type Instance = Element;
@@ -10,9 +12,10 @@ export type TextInstance = Text;
  * @param type DOM 元素类型
  * @returns DOM 元素
  */
-export const createInstance = (type: string): Instance => {
-	// TODO 处理 props
+export const createInstance = (type: string, props: Props): Instance => {
 	const element = document.createElement(type);
+	// 更新属性
+	updateFiberProps(element, props);
 	return element;
 };
 
@@ -50,7 +53,9 @@ export function commitUpdate(fiber: FiberNode) {
 			// HostText 类型的处理
 			const text = fiber.memorizedProps.content;
 			return commitTextUpdate(fiber.stateNode, text);
-
+		case HostComponent:
+			// HostComponent 类型的处理
+			return;
 		default:
 			if (__DEV__) {
 				console.warn('未实现的 Update 情况', fiber);
