@@ -409,3 +409,243 @@ bubble [p onClick, div onClick, container onClick]
 ```
 
 使用 unshift 插入的 capture，能保证在遍历时的 DOMElement 是从上到下，这与捕获的思想是一致的。反之，使用 push 插入的 bubble 也是如此。
+
+# 4 diff 算法的实现
+
+## 4.1 单节点 diff
+
+## 4.2 多节点 diff
+
+### 4.2.1 改造 reconcileSingleElement
+
+示例说明：
+以下用到的 A1，A 代表 type，1 代表 key
+
+单节点 diff 所支持的情况
+
+- A1 -> B1
+- A1 -> A2
+
+需要扩展的情况
+
+- ABC -> A
+
+可以区分出以下几种更加细致的情况：
+
+- key 相同，type 相同 == 可以复用当前节点
+- key 相同，type 不同 == 不能复用当前节点，销毁当前节点并创建一个新节点替换旧节点
+- key 不相同 == 当前节点不能复用，但是其他兄弟节点或许能复用，所以需要遍历其他兄弟节点
+
+### 4.2.2 支持多节点
+
+多节点需要支持的情况包括
+
+- 插入 Placement
+- 删除 ChildDeletion
+- 移动 Placement
+
+整体流程可以分为 4 步：
+
+1. 将 current 中所有同级 fiber 保存在 Map 中
+2. 遍历 newChild 数组，对于每个遍历到的 Element，存在两种情况
+   1. Map 中存在对应 current fiber，且可以复用
+   2. Map 中不存在对应 current fiber，或不能复用
+3. 判断是插入还是移动
+4. Map 中剩下的都标记为删除
+
+#### 关于是否可复用的讨论
+
+首先，根据 key 从 Map 中获取 current fiber，如果不存在 current fiber，则不存在复用的可能
+
+接下来，分情况讨论：
+
+- element 属于 HostText，那 current fiber 是否属于 HostText ?
+- element 属于其他 ReactElement，那 current fiber 是否属于其他 ReactElement ?
+- (TODO) element 属于数组或 Fragment， current fiber 是否属于这两种情况呢 ？
+
+#### 关于插入 / 移动的讨论
+
+移动---具体是指向右移动
+
+移动的判断依据：element 的 index 与 element 对应的 current fiber 的 index 的比较
+
+以下例子中，箭头左边表示 update 前，右边表示 update 后
+
+```
+A1 B2 C3 -> B2 C3 A1
+0  1  2     0  1  2
+```
+
+更新后 element A1 的 index 与 current fiber A1 的 index 比较，index 从 0 变成 2，所以 A1 是往右移动的
+
+遍历 element 时，当前遍历到的 element 一定是所有已遍历到的 element 中最靠右的那个
+
+所以，只需要记录最后一个可复用 fiber 在 current 中的 index (lastPlacedIndex)，在接下来的遍历中：
+
+- 如果遍历到可复用 fiber 的 index < lastPlacedIndex，则标记 Placement
+- 否则，不标记
+
+由于 Placement 同时对应了移动和插入两种操作
+
+对于插入操作，实现的 DOM 方法是 parentNode.appendChild
+
+对于移动操作，实现的 DOM 方法是 parentNode.insertBefore
+
+执行插入操作之前，需要找到目标节点的父节点，同样的，在执行移动操作之前，也需要先找到**目标兄弟 Host 节点**
+
+要找到兄弟节点，需要考虑两个因素
+
+- 可能并不是目标 fiber 的直接兄弟节点
+
+```jsx
+// 情况 1
+<A/><B/>
+function B(){
+	return <div />
+}
+
+// 情况 2
+<App/><div/>
+function App(){
+	return <A/>
+}
+```
+
+对于情况 1，A 的兄弟 Host 节点其实是 B 返回的 div，还有可能会有 B 返回 C， C 返回 D ，不断嵌套的过程，所以要在找到 sibling 之后，不断向下遍历，直到找到一个 Host 节点
+
+对于情况 2，A 的兄弟 Host 节点是父组件的兄弟节点，所以需要向上遍历，找到父节点的兄弟 Host 节点
+
+- 不稳定的 Host 节点，不能作为目标兄弟 Host 节点
+
+如果找到的 Host 节点，本身就被标记为 Placement，就说明该节点是不稳定的 Host 节点
+
+## 4.3 Fragment
+
+为了提高组件结构灵活性，需要实现 Fragment，具体来说，需要区分几种情况
+
+### 4.3.1 Fragment 包裹其他组件
+
+```jsx
+<>
+	<div></div>
+	<div></div>
+</>
+
+// 对应 DOM
+<div></div>
+<div></div>
+
+```
+
+JSX 转换结果：
+
+```js
+jsxs(Fragment, {
+	children: [
+		jsx("div", {})
+		jsx("div", {})
+	]
+})
+```
+
+type 为 Fragment 的 ReactElement，对单一节点的 Diff 需要考虑 Fragment 的情况
+
+### 4.3.2 Fragment 与其他组件同级
+
+```jsx
+<ul>
+	<>
+		<li></li>
+		<li></li>
+	</>
+	<li></li>
+	<li></li>
+</ul>
+
+// 对应 DOM
+<ul>
+	<li></li>
+	<li></li>
+	<li></li>
+	<li></li>
+</ul>
+```
+
+JSX 转换结果：
+
+```js
+jsxs('ul', {
+	children: [
+		jsxs(Fragment, {
+			children: [
+				jsx('li'),
+				jsx('li')
+			]
+		}),
+   	jsx('li')
+   	jsx('li')
+	]
+});
+```
+
+children 是数组类型，则进入 reconcileChildrenArray 方法，存在数组中的某一项为 Fragment 的情况，所以需要增加对 type 为 Fragment 的 ReactElement 的判断，
+同时 beginWork 中需要增加 Fragment 类型的判断。
+
+### 4.3.3 数组形式的 Fragment
+
+```jsx
+// arr = [<li></li>, <li></li>]
+
+<ul>
+	<li></li>
+	<li></li>
+	{arr}
+</ul>
+
+// 对应 DOM
+<ul>
+	<li></li>
+	<li></li>
+	<li></li>
+	<li></li>
+</ul>
+```
+
+JSX 转换结果：
+
+```js
+jsxs('ul', children: [
+	jsx('li'),
+	jsx('li'),
+	arr
+])
+```
+
+children 为数组类型，所以进入 reconcileChildrenArray 方法，由于其中某一项为数组，所以需要增加 reconcileChildrenArray 中对于数组类型的判断
+
+### 4.3.4 Fragment 对 ChildDeletion 的影响
+
+ChildDeletion 删除 DOM 的逻辑：
+
+- 找到子树的根 Host 节点
+- 找到子树对应的父级 Host 节点
+- 从父级 Host 节点中删除子树根 Host 节点
+
+考虑删除 p 节点的情况：
+
+```jsx
+<div>
+	<p>111</p>
+</div>
+```
+
+考虑删除 Fragment 后， Fragment 中包含多个子树，即子树的根 Host 节点可能存在多个：
+
+```jsx
+<div>
+	<>
+		<p>111</p>
+		<p>111</p>
+	</>
+</div>
+```

@@ -1,4 +1,4 @@
-import { REACT_ELEMENT_TYPE } from 'shared/ReactSymbol';
+import { REACT_ELEMENT_TYPE, REACT_FRAGMENT_TYPE } from 'shared/ReactSymbol';
 import {
 	Type,
 	Key,
@@ -81,6 +81,8 @@ export const jsx = (type: ElementType, config: any, ...maybeChildren: any) => {
 
 	return ReactElement(type, key, ref, props);
 };
+
+export const Fragment = REACT_FRAGMENT_TYPE;
 
 /**
  * @description jsx 转换为 ReactElement
