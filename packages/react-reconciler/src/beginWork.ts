@@ -10,23 +10,24 @@ import {
 } from './workTag';
 import { mountChildFibers, reconcileChildFibers } from './childFibers';
 import { renderWithHooks } from './fiberHooks';
+import { Lane } from './fiberLanes';
 
 /**
  * 根据传入的 wip 的 tag，开始对应的 beginWork 流程
  * @param wip 当前工作中的 Fiber 节点，表示根节点（HostRoot）
  * @returns 更新后的子节点
  */
-export const beginWork = (wip: FiberNode) => {
+export const beginWork = (wip: FiberNode, renderLane: Lane) => {
 	// 比较，返回子 fiberNode
 	switch (wip.tag) {
 		case HostRoot:
-			return updateHostRoot(wip);
+			return updateHostRoot(wip, renderLane);
 		case HostComponent:
 			return updateHostComponent(wip);
 		case HostText:
 			return null;
 		case FunctionComponent:
-			return updateFunctionComponent(wip);
+			return updateFunctionComponent(wip, renderLane);
 		case Fragment:
 			return updateFragment(wip);
 		default:
@@ -50,8 +51,8 @@ function updateFragment(wip: FiberNode) {
  * @param wip 当前工作中的 Fiber Node
  * @returns 更新后的子节点
  */
-function updateFunctionComponent(wip: FiberNode) {
-	const nextChildren = renderWithHooks(wip);
+function updateFunctionComponent(wip: FiberNode, renderLane: Lane) {
+	const nextChildren = renderWithHooks(wip, renderLane);
 	reconcileChildren(wip, nextChildren);
 	return wip.child;
 }
@@ -59,9 +60,10 @@ function updateFunctionComponent(wip: FiberNode) {
 /**
  * 更新根节点（HostRoot）的逻辑
  * @param wip 当前工作中的 Fiber 节点，表示根节点（HostRoot）
+ * @param renderLane 渲染优先级
  * @returns 更新后的子节点
  */
-function updateHostRoot(wip: FiberNode): FiberNode | null {
+function updateHostRoot(wip: FiberNode, renderLane: Lane): FiberNode | null {
 	// 获取基础状态和更新队列
 	const baseState = wip.memoizedState;
 	const updateQueue = wip.updateQueue as UpdateQueue<Element>;
@@ -70,10 +72,8 @@ function updateHostRoot(wip: FiberNode): FiberNode | null {
 	// 将更新队列的 pending 属性置为 null，表示更新操作已被处理
 	updateQueue.shared.pending = null;
 
-	// console.log(pending, 'pending');
-
 	// 处理更新队列中的更新操作，获取处理后的状态
-	const { memoizedState } = processUpdateQueue(baseState, pending);
+	const { memoizedState } = processUpdateQueue(baseState, pending, renderLane);
 	// 将处理后的状态赋值给当前工作节点的 memoizedState 属性，表示更新后的状态
 	wip.memoizedState = memoizedState;
 

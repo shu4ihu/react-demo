@@ -1,9 +1,12 @@
 import { Action } from 'shared/ReactTypes';
 import { Update } from './fiberFlags';
 import { Dispatch } from 'react/src/currentDispatcher';
+import { Lane } from './fiberLanes';
 
 export interface Update<State> {
 	action: Action<State>;
+	lane: Lane;
+	next: Update<any> | null;
 }
 
 export interface UpdateQueue<State> {
@@ -16,11 +19,17 @@ export interface UpdateQueue<State> {
 /**
  * @description 创建一个新的更新对象
  * @param action 更新操作
+ * @param lane 更新优先级
  * @returns 更新对象
  */
-export const createUpdate = <State>(action: Action<State>): Update<State> => {
+export const createUpdate = <State>(
+	action: Action<State>,
+	lane: Lane
+): Update<State> => {
 	return {
-		action
+		action,
+		lane,
+		next: null
 	};
 };
 
@@ -46,9 +55,16 @@ export const enqueueUpdate = <State>(
 	updateQueue: UpdateQueue<State>,
 	update: Update<State>
 ) => {
-	// console.log(updateQueue.shared.pending, update, 'before enqueue');
+	const pending = updateQueue.shared.pending;
+	if (pending === null) {
+		// 如果当前没有待处理更新操作，则将当前更新操作作为待处理更新操作
+		update.next = update;
+	} else {
+		update.next = pending.next;
+		pending.next = update;
+	}
+
 	updateQueue.shared.pending = update;
-	// console.log(updateQueue.shared.pending, update, 'after enqueue');
 };
 
 /**
@@ -59,22 +75,34 @@ export const enqueueUpdate = <State>(
  */
 export const processUpdateQueue = <State>(
 	baseState: State,
-	pendingUpdate: Update<State> | null
+	pendingUpdate: Update<State> | null,
+	renderLane: Lane
 ): { memoizedState: State } => {
 	const result: ReturnType<typeof processUpdateQueue<State>> = {
 		memoizedState: baseState
 	};
 	// 如果存在待处理更新操作，则执行更新操作
 	if (pendingUpdate !== null) {
-		const action = pendingUpdate.action;
-		if (action instanceof Function) {
-			// 如果更新操作是函数，则执行函数并将执行结果作为新的状态
-			result.memoizedState = action(baseState);
-		} else {
-			// 如果更新操作不是函数，则直接将更新操作作为新的状态
-			result.memoizedState = action;
-		}
-	}
+		const first = pendingUpdate.next;
+		let pending = pendingUpdate.next as Update<any>;
 
+		do {
+			const updateLane = pending.lane;
+			if (updateLane === renderLane) {
+				const action = pending.action;
+				if (action instanceof Function) {
+					// 如果更新操作是函数，则执行函数并将执行结果作为新的状态
+					baseState = action(baseState);
+				} else {
+					// 如果更新操作不是函数，则直接将更新操作作为新的状态
+					baseState = action;
+				}
+			} else {
+				if (__DEV__) console.error('不应该进入 updateLane !== renderLane 逻辑');
+			}
+			pending = pending.next as Update<any>;
+		} while (pending !== first && pending !== null);
+	}
+	result.memoizedState = baseState;
 	return result;
 };

@@ -3,6 +3,7 @@ import { FunctionComponent, HostComponent, WorkTag } from './workTag';
 import { Flags, NoFlags } from './fiberFlags';
 import { Container } from 'hostConfig';
 import { Fragment } from './workTag';
+import { Lane, Lanes, NoLane, NoLanes } from './fiberLanes';
 
 export class FiberNode {
 	// 类型
@@ -84,12 +85,18 @@ export class FiberRootNode {
 	current: FiberNode;
 	// 已完成工作，但是未提交到的 Fiber 树的根节点
 	finishedWork: FiberNode | null;
+	// 待处理的 Lanes
+	pendingLanes: Lanes;
+	// 已处理的 Lane
+	finishedLane: Lane;
 
 	constructor(container: Container, hostRootFiber: FiberNode) {
 		this.container = container;
 		this.current = hostRootFiber;
 		hostRootFiber.stateNode = this;
 		this.finishedWork = null;
+		this.pendingLanes = NoLanes;
+		this.finishedLane = NoLane;
 	}
 }
 

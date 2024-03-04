@@ -43,7 +43,7 @@ export function initEvent(container: Container, eventType: string) {
 	}
 
 	if (__DEV__) {
-		console.log('初始化', eventType);
+		console.warn('初始化', eventType);
 	}
 
 	// 监听事件

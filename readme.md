@@ -649,3 +649,81 @@ ChildDeletion 删除 DOM 的逻辑：
 	</>
 </div>
 ```
+
+# 5 schedule
+
+## 5.1 实现同步调度流程
+
+如下代码到底是同步还是异步
+
+```jsx
+class App extends React.Component() {
+	onClick() {
+		this.setState({ a: 1 });
+		console.log(this.state.a);
+	}
+
+	// 省略代码
+}
+```
+
+当前实现：
+
+- 从出发更新到 render，再到 commit 都是同步的
+- 多次触发更新会重复多次更新流程
+
+可以改进的点：多次触发更新，只进行一次更新
+
+`Batch Updates` （批处理），多次触发更新，只进行一次更新流程，理念有点像防抖、节流
+
+但是需要考虑，合并批处理的时机，是宏任务还是微任务
+
+在 React 中批处理的时机既有宏任务也有微任务
+
+# 6 useEffect
+
+实现 useEffect 需要考虑两个问题
+
+- effect 数据结构
+- effect 的工作流程如何接入现有流程
+
+## 6.1 effect 数据结构
+
+什么是 effect
+
+```jsx
+function App() {
+	useEffect(() => {
+		return () => {};
+	}, [xxx, xxx]);
+
+	useLayoutEffect(() => {});
+	useEffect(() => {});
+}
+```
+
+数据结构需要考虑：
+
+**1. 不同的 effect 可以共用同一个机制**
+
+- useEffect
+  - 触发时机：在依赖变化以后的当前 commit 阶段完成以后，异步执行
+- useLayoutEffect
+  - 触发时机：在依赖变化后的当前 commit 阶段完成以后，同步执行
+- useInsertionEffect
+  - 触发时机：在依赖变化后的当前 commit 阶段完成以后，同步执行
+
+useLayoutEffect 和 useInsertionEffect 的区别：
+
+- 在执行 useInsertionEffect 的时候，还不能获取到 DOM 的引用，useInsertionEffect 主要是给 css in js 的库使用的，日常用不上
+
+**2. 需要能保存依赖**
+
+**3. 需要能保存 create 回调**
+
+**4. 需要能保存 destroy 回调**
+
+**5. 需要能区分是否需要触发 create 回调**
+
+- mount 时
+- 依赖变化时

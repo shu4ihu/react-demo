@@ -187,7 +187,6 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 			const after = newChild[i];
 			// 通过 Map 查找是否可复用
 			const newFiber = updateFromMap(returnFiber, existingChildren, i, after);
-			console.log(newFiber, 'newFiber');
 			// 不可复用
 			if (newFiber === null) {
 				continue;
@@ -251,8 +250,6 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 		index: number,
 		element: any
 	): FiberNode | null {
-		console.log('element', element, 'element');
-
 		// 如果 key 为 null，index 代替 key
 		const keyToUse = element.key !== null ? element.key : index;
 		// 通过 key 查找是否可复用
@@ -277,7 +274,6 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 			switch (element.$$typeof) {
 				case REACT_ELEMENT_TYPE:
 					if (element.type === REACT_FRAGMENT_TYPE) {
-						console.log('fragment 类型');
 						return updateFragment(
 							returnFiber,
 							before,
@@ -298,7 +294,6 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 
 		// 数组类型
 		if (Array.isArray(element)) {
-			console.log('数组类型');
 			return updateFragment(
 				returnFiber,
 				before,
@@ -353,7 +348,6 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 
 			// 多节点情况
 			if (Array.isArray(newChild)) {
-				console.log('多节点情况');
 				return reconcileChildrenArray(returnFiber, currentFiber, newChild);
 			}
 		}
