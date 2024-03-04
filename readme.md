@@ -727,3 +727,10 @@ useLayoutEffect 和 useInsertionEffect 的区别：
 
 - mount 时
 - 依赖变化时
+
+新增 3 个 flag:
+
+- 对于 fiber，新增 PassiveEffect，代表当前 fiber 本次更新存在副作用
+- 对于 effect hook
+  - Passive 代表 useEffect 对应 effect
+  - HookHasEffect 代表当前 effect 本次更新存在副作用
