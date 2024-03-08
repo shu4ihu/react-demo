@@ -51,11 +51,11 @@ export function commitUpdate(fiber: FiberNode) {
 	switch (fiber.tag) {
 		case HostText:
 			// HostText 类型的处理
-			const text = fiber.memorizedProps.content;
+			const text = fiber.memoizedProps.content;
 			return commitTextUpdate(fiber.stateNode, text);
 		case HostComponent:
 			// HostComponent 类型的处理
-			return;
+			return updateFiberProps(fiber.stateNode, fiber.memoizedProps);
 		default:
 			if (__DEV__) {
 				console.warn('未实现的 Update 情况', fiber);

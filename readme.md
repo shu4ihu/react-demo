@@ -734,3 +734,7 @@ useLayoutEffect 和 useInsertionEffect 的区别：
 - 对于 effect hook
   - Passive 代表 useEffect 对应 effect
   - HookHasEffect 代表当前 effect 本次更新存在副作用
+
+## 6.2 effect 工作流程
+
+![effect 工作流程](./imgs/useEffect/effect-1.png)

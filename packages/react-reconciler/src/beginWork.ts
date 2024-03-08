@@ -40,7 +40,6 @@ export const beginWork = (wip: FiberNode, renderLane: Lane) => {
 };
 
 function updateFragment(wip: FiberNode) {
-	console.log('updateFragment', wip.pendingProps);
 	const nextChildren = wip.pendingProps;
 	reconcileChildren(wip, nextChildren);
 	return wip.child;

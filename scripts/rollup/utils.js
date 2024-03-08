@@ -15,7 +15,7 @@ export function resolvePkgPath(pkgName, isDist) {
 	return `${pkgPath}/${pkgName}`;
 }
 
-export function getPackageJson(pkgName) {
+export function getPackageJSON(pkgName) {
 	const path = `${resolvePkgPath(pkgName)}/package.json`;
 	const str = fs.readFileSync(path, { encoding: 'utf-8' });
 	return JSON.parse(str);

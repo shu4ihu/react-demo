@@ -50,8 +50,10 @@ type EffectDeps = any[] | null;
 export function renderWithHooks(wip: FiberNode, lane: Lane) {
 	// 当前正在渲染的 Fiber 节点
 	currentlyRenderingFiber = wip;
-	// 组件 mount 时，memoizedState 为 null
+	// 组件 mount 时，memoizedState 为 null，重置 hooks 链表
 	wip.memoizedState = null;
+	// 重置 effect 链表
+	wip.updateQueue = null;
 	renderLane = lane;
 	// 检查当前处于 update 还是 mount
 	const current = wip.alternate;
@@ -88,7 +90,47 @@ const HooksDispatcherOnUpdate: Dispatcher = {
 	useEffect: updateEffect
 };
 
-function updateEffect() {}
+function updateEffect(create: EffectCallback | void, deps: EffectDeps) {
+	const hook = updateWorkInProgress();
+	const nextDeps = deps === undefined ? null : deps;
+	let destroy: EffectCallback | void = undefined;
+
+	if (currentHook !== null) {
+		const prevEffect = currentHook.memoizedState as Effect;
+		destroy = prevEffect.destroy;
+
+		if (nextDeps !== null) {
+			// 浅比较依赖
+			const prevDeps = prevEffect.deps;
+			if (areHookInputsEqual(nextDeps, prevDeps)) {
+				hook.memoizedState = pushEffect(Passive, create, destroy, nextDeps);
+				return;
+			}
+		}
+		// 浅比较 不等
+		(currentlyRenderingFiber as FiberNode).flags |= PassiveEffect;
+		hook.memoizedState = pushEffect(
+			Passive | HookHasEffect,
+			create,
+			destroy,
+			nextDeps
+		);
+	}
+}
+
+function areHookInputsEqual(nextDeps: EffectDeps, prevDeps: EffectDeps) {
+	if (prevDeps === null || nextDeps === null) {
+		return false;
+	}
+
+	for (let i = 0; i < prevDeps.length && i < nextDeps.length; i++) {
+		if (Object.is(prevDeps[i], nextDeps[i])) {
+			continue;
+		}
+		return false;
+	}
+	return true;
+}
 
 function mountEffect(create: EffectCallback | void, deps: EffectDeps) {
 	const hook = mountWorkInProgress();

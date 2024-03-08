@@ -13,7 +13,6 @@ import {
 	HostText
 } from './workTag';
 import { NoFlags, Update } from './fiberFlags';
-import { updateFiberProps } from 'react-dom/src/SyntheticEvent';
 
 function markUpdate(fiber: FiberNode) {
 	fiber.flags |= Update;
@@ -28,7 +27,7 @@ export const completeWork = (wip: FiberNode) => {
 	const newProps = wip.pendingProps;
 	const current = wip.alternate;
 
-	// console.log('wip tag', wip.tag);
+	console.log('wip tag', wip.tag);
 	switch (wip.tag) {
 		case HostComponent:
 			// 如果 current 存在且 stateNode 存在，表示是更新操作，否则是挂载操作
@@ -36,7 +35,8 @@ export const completeWork = (wip: FiberNode) => {
 				// update
 				// 判断 props 是否变化，如果变化则标记更新
 				// 如果需要监听所有 props 的变化比较麻烦，所以这里不实现，直接更新
-				updateFiberProps(wip.stateNode, wip.pendingProps);
+				// updateFiberProps(wip.stateNode, wip.pendingProps);
+				markUpdate(wip);
 			} else {
 				// mount
 				// 构建 DOM，然后将 DOM 插入到 DOM 树中
@@ -52,7 +52,7 @@ export const completeWork = (wip: FiberNode) => {
 			// HostText 类型：文本节点的内容就是它所代表的数据，所以不包含子节点，它的更新只涉及到文本内容的更新
 			if (current !== null && wip.stateNode) {
 				// update 阶段执行的操作
-				const oldText = current.memorizedProps.content;
+				const oldText = current.memoizedProps.content;
 				const newText = newProps.content;
 				if (oldText !== newText) {
 					markUpdate(wip);
@@ -60,6 +60,7 @@ export const completeWork = (wip: FiberNode) => {
 			} else {
 				// 构建 DOM
 				const instance = createTextInstance(newProps.content);
+				console.warn('instance', instance);
 				wip.stateNode = instance;
 			}
 			bubbleProperties(wip);

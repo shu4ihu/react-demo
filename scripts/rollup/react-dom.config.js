@@ -1,8 +1,8 @@
-import { getPackageJson, resolvePkgPath, getBaseRollupPlugins } from './utils';
+import { getPackageJSON, resolvePkgPath, getBaseRollupPlugins } from './utils';
 import generatePackageJson from 'rollup-plugin-generate-package-json';
 import alias from '@rollup/plugin-alias';
 
-const { name, module, peerDependencies } = getPackageJson('react-dom');
+const { name, module, peerDependencies } = getPackageJSON('react-dom');
 // React 包路径
 const pkgPath = resolvePkgPath(name);
 // React 产物路径
@@ -24,7 +24,7 @@ export default [
 				format: 'umd'
 			}
 		],
-		external: [...Object.keys(peerDependencies)],
+		external: [...Object.keys(peerDependencies), 'scheduler'],
 		plugins: [
 			...getBaseRollupPlugins(),
 			alias({

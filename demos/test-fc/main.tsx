@@ -1,23 +1,22 @@
 import * as React from 'react';
-import { useState } from 'react';
-import ReactDOM from 'react-dom/client';
+import { useState, useEffect } from 'react';
+import ReactDOM from 'react-noop-renderer';
 
 function App() {
-	const [num, setNum] = useState(0);
-
 	return (
-		<div
-			onClick={() => {
-				setNum((num) => num + 1);
-				setNum((num) => num + 2);
-				setNum((num) => num + 3);
-			}}
-		>
-			{num}
-		</div>
+		<>
+			<Child></Child>
+			<div>hello world</div>
+		</>
 	);
 }
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-	<App />
-);
+function Child() {
+	return 'i am a child';
+}
+
+const root = ReactDOM.createRoot();
+
+root.render(<App />);
+
+window.root = root;

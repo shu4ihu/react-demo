@@ -4,6 +4,7 @@ import { Flags, NoFlags } from './fiberFlags';
 import { Container } from 'hostConfig';
 import { Fragment } from './workTag';
 import { Lane, Lanes, NoLane, NoLanes } from './fiberLanes';
+import { Effect } from './fiberHooks';
 
 export class FiberNode {
 	// 类型
@@ -29,7 +30,7 @@ export class FiberNode {
 	index: number;
 
 	// 记录下的节点的状态和属性
-	memorizedProps: Props | null;
+	memoizedProps: Props | null;
 	memoizedState: any;
 	// 当前 FiberNode 的备份，双缓冲技术
 	alternate: FiberNode | null;
@@ -65,7 +66,7 @@ export class FiberNode {
 
 		// 作为工作单元
 		this.pendingProps = pendingProps;
-		this.memorizedProps = null;
+		this.memoizedProps = null;
 		this.memoizedState = null;
 		this.updateQueue = null;
 
@@ -76,6 +77,11 @@ export class FiberNode {
 		this.subtreeFlags = NoFlags;
 		this.deletions = null;
 	}
+}
+
+export interface PendingPassiveEffects {
+	unmount: Effect[];
+	update: Effect[];
 }
 
 export class FiberRootNode {
@@ -89,6 +95,7 @@ export class FiberRootNode {
 	pendingLanes: Lanes;
 	// 已处理的 Lane
 	finishedLane: Lane;
+	pendingPassiveEffects: PendingPassiveEffects;
 
 	constructor(container: Container, hostRootFiber: FiberNode) {
 		this.container = container;
@@ -97,6 +104,10 @@ export class FiberRootNode {
 		this.finishedWork = null;
 		this.pendingLanes = NoLanes;
 		this.finishedLane = NoLane;
+		this.pendingPassiveEffects = {
+			unmount: [],
+			update: []
+		};
 	}
 }
 
@@ -131,7 +142,7 @@ export const createWorkInProgress = (
 	wip.type = current.type;
 	wip.updateQueue = current.updateQueue;
 	wip.child = current.child;
-	wip.memorizedProps = current.memorizedProps;
+	wip.memoizedProps = current.memoizedProps;
 	wip.memoizedState = current.memoizedState;
 
 	return wip;
