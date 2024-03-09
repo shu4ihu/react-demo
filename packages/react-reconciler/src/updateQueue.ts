@@ -1,7 +1,7 @@
 import { Action } from 'shared/ReactTypes';
 import { Update } from './fiberFlags';
 import { Dispatch } from 'react/src/currentDispatcher';
-import { Lane } from './fiberLanes';
+import { Lane, NoLane, isSubsetOfLanes } from './fiberLanes';
 
 export interface Update<State> {
 	action: Action<State>;
@@ -77,32 +77,73 @@ export const processUpdateQueue = <State>(
 	baseState: State,
 	pendingUpdate: Update<State> | null,
 	renderLane: Lane
-): { memoizedState: State } => {
+): {
+	memoizedState: State;
+	baseState: State;
+	baseQueue: Update<State> | null;
+} => {
 	const result: ReturnType<typeof processUpdateQueue<State>> = {
-		memoizedState: baseState
+		memoizedState: baseState,
+		baseState,
+		baseQueue: null
 	};
 	// 如果存在待处理更新操作，则执行更新操作
 	if (pendingUpdate !== null) {
 		const first = pendingUpdate.next;
 		let pending = pendingUpdate.next as Update<any>;
 
+		let newBaseState = baseState;
+		let newBaseQueueFirst: Update<State> | null = null;
+		let newBaseQueueLast: Update<State> | null = null;
+		let newState = baseState;
+
 		do {
 			const updateLane = pending.lane;
-			if (updateLane === renderLane) {
+			if (!isSubsetOfLanes(renderLane, updateLane)) {
+				// 优先级不够，被跳过
+				const clone = createUpdate(pending.action, pending.lane);
+				// 是不是第一个被跳过的
+				if (newBaseQueueFirst === null) {
+					// first u0 last u0
+					newBaseQueueFirst = clone;
+					newBaseQueueLast = clone;
+					newBaseState = newState;
+				} else {
+					// first u0
+					// last u0 -> u1
+					(newBaseQueueLast as Update<State>).next = clone;
+					newBaseQueueLast = clone;
+				}
+			} else {
+				// 优先级足够
+				if (newBaseQueueLast !== null) {
+					const clone = createUpdate(pending.action, NoLane);
+					newBaseQueueLast.next = clone;
+					newBaseQueueLast = clone;
+				}
+
 				const action = pending.action;
 				if (action instanceof Function) {
 					// 如果更新操作是函数，则执行函数并将执行结果作为新的状态
-					baseState = action(baseState);
+					newState = action(baseState);
 				} else {
 					// 如果更新操作不是函数，则直接将更新操作作为新的状态
-					baseState = action;
+					newState = action;
 				}
-			} else {
-				if (__DEV__) console.error('不应该进入 updateLane !== renderLane 逻辑');
 			}
 			pending = pending.next as Update<any>;
-		} while (pending !== first && pending !== null);
+		} while (pending !== first);
+
+		if (newBaseQueueLast === null) {
+			// 说明本次计算没有 update 被跳过
+			newBaseState = newState;
+		} else {
+			// 说明本次计算有 update 被跳过
+			newBaseQueueLast.next = newBaseQueueFirst;
+		}
+		result.memoizedState = newState;
+		result.baseState = newBaseState;
+		result.baseQueue = newBaseQueueLast;
 	}
-	result.memoizedState = baseState;
 	return result;
 };

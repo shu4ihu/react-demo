@@ -1,3 +1,9 @@
+import {
+	unstable_ImmediatePriority,
+	unstable_NormalPriority,
+	unstable_UserBlockingPriority,
+	unstable_runWithPriority
+} from 'scheduler';
 import { Container } from './hostConfig';
 import { Props } from 'shared/ReactTypes';
 
@@ -114,8 +120,9 @@ function triggerEventFlow(paths: EventCallback[], se: SyntheticEvent) {
 	// 遍历 paths，执行回调
 	for (let i = 0; i < paths.length; i++) {
 		const callback = paths[i];
-		callback.call(null, se);
-
+		unstable_runWithPriority(eventTypeToSchedulerPriority(se.type), () => {
+			callback.call(null, se);
+		});
 		// 如果 __stopPropagation 为 true，跳出循环
 		if (se.__stopPropagation) {
 			break;
@@ -180,4 +187,17 @@ function collectPaths(
 	}
 
 	return paths;
+}
+
+function eventTypeToSchedulerPriority(eventType: string) {
+	switch (eventType) {
+		case 'click':
+		case 'keydown':
+		case 'keyup':
+			return unstable_ImmediatePriority;
+		case 'scroll':
+			return unstable_UserBlockingPriority;
+		default:
+			return unstable_NormalPriority;
+	}
 }

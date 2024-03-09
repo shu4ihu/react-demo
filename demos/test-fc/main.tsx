@@ -1,22 +1,22 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import ReactDOM from 'react-noop-renderer';
+import ReactDOM from 'react-dom';
 
 function App() {
+	const [count, setCount] = useState(100);
 	return (
-		<>
-			<Child></Child>
-			<div>hello world</div>
-		</>
+		<ul onClick={() => setCount(50)}>
+			{new Array(count).fill(0).map((_, i) => (
+				<Child key={i}>{i}</Child>
+			))}
+		</ul>
 	);
 }
 
-function Child() {
-	return 'i am a child';
+function Child({ children }) {
+	const now = performance.now();
+	while (performance.now() - now < 4) {}
+	return <li>{children}</li>;
 }
 
-const root = ReactDOM.createRoot();
-
-root.render(<App />);
-
-window.root = root;
+ReactDOM.createRoot(document.querySelector('#root')).render(<App />);
