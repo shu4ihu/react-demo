@@ -3,6 +3,7 @@ import {
 	ContextProvider,
 	FunctionComponent,
 	HostComponent,
+	OffscreenComponent,
 	SuspenseComponent,
 	WorkTag
 } from './workTag';
@@ -13,6 +14,11 @@ import { Lane, Lanes, NoLane, NoLanes } from './fiberLanes';
 import { Effect } from './fiberHooks';
 import { CallbackNode } from 'scheduler';
 import { REACT_PROVIDER_TYPE, REACT_SUSPENSE_TYPE } from 'shared/ReactSymbol';
+
+export interface OffscreenProps {
+	mode: 'visible' | 'hidden';
+	children: any;
+}
 
 export class FiberNode {
 	// 类型
@@ -195,5 +201,12 @@ export function createFiberFormElement(element: ReactElementType): FiberNode {
 
 export function createFiberFormFragment(elements: any[], key: Key): FiberNode {
 	const fiber = new FiberNode(Fragment, elements, key);
+	return fiber;
+}
+
+export function createFiberFormOffscreen(
+	pendingProps: OffscreenProps
+): FiberNode {
+	const fiber = new FiberNode(OffscreenComponent, pendingProps, null);
 	return fiber;
 }
