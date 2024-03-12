@@ -1,6 +1,7 @@
 import internals from 'shared/internal';
 import { FiberNode } from './fiber';
 import { Dispatch, Dispatcher } from 'react/src/currentDispatcher';
+import currentBatchConfig from 'react/src/currentBatchConfig';
 import {
 	Update,
 	UpdateQueue,
@@ -9,7 +10,7 @@ import {
 	enqueueUpdate,
 	processUpdateQueue
 } from './updateQueue';
-import { Action } from 'shared/ReactTypes';
+import { Action, ReactContext } from 'shared/ReactTypes';
 import { scheduleUpdateOnFiber } from './workLoop';
 import { Lane, NoLane, requestUpdateLane } from './fiberLanes';
 import { Flags, PassiveEffect } from './fiberFlags';
@@ -85,16 +86,22 @@ export function renderWithHooks(wip: FiberNode, lane: Lane) {
 
 const HooksDispatcherOnMount: Dispatcher = {
 	useState: mountState,
-	useEffect: mountEffect
+	useEffect: mountEffect,
+	useTransition: mountTransition,
+	useRef: mountRef,
+	useContext: readContext
 };
 
 const HooksDispatcherOnUpdate: Dispatcher = {
 	useState: updateState,
-	useEffect: updateEffect
+	useEffect: updateEffect,
+	useTransition: updateTransition,
+	useRef: updateRef,
+	useContext: readContext
 };
 
 function updateEffect(create: EffectCallback | void, deps: EffectDeps) {
-	const hook = updateWorkInProgress();
+	const hook = updateWorkInProgressHook();
 	const nextDeps = deps === undefined ? null : deps;
 	let destroy: EffectCallback | void = undefined;
 
@@ -136,7 +143,7 @@ function areHookInputsEqual(nextDeps: EffectDeps, prevDeps: EffectDeps) {
 }
 
 function mountEffect(create: EffectCallback | void, deps: EffectDeps) {
-	const hook = mountWorkInProgress();
+	const hook = mountWorkInProgressHook();
 	const nextDeps = deps === undefined ? null : deps;
 
 	(currentlyRenderingFiber as FiberNode).flags |= PassiveEffect;
@@ -199,7 +206,7 @@ function createFCUpdateQueue<State>() {
  */
 function updateState<State>(): [State, Dispatch<State>] {
 	// 找到当前 useState 对应的 hook 数据
-	const hook = updateWorkInProgress();
+	const hook = updateWorkInProgressHook();
 
 	// 计算新 state 的逻辑
 	const queue = hook.updateQueue as UpdateQueue<State>;
@@ -222,19 +229,19 @@ function updateState<State>(): [State, Dispatch<State>] {
 		baseQueue = pending;
 		current.baseQueue = pending;
 		queue.shared.pending = null;
+	}
 
-		if (baseQueue !== null) {
-			// 如果有未处理的更新，执行更新操作
-			const {
-				memoizedState,
-				baseQueue: newBaseQueue,
-				baseState: newBaseState
-			} = processUpdateQueue(baseState, pending, renderLane);
+	if (baseQueue !== null) {
+		// 如果有未处理的更新，执行更新操作
+		const {
+			memoizedState,
+			baseQueue: newBaseQueue,
+			baseState: newBaseState
+		} = processUpdateQueue(baseState, baseQueue, renderLane);
 
-			hook.memoizedState = memoizedState;
-			hook.baseState = newBaseState;
-			hook.baseQueue = newBaseQueue;
-		}
+		hook.memoizedState = memoizedState;
+		hook.baseState = newBaseState;
+		hook.baseQueue = newBaseQueue;
 	}
 
 	return [hook.memoizedState, queue.dispatch as Dispatch<State>];
@@ -244,7 +251,7 @@ function updateState<State>(): [State, Dispatch<State>] {
  * @description update 时，创建 hooks 集合
  * @returns Hook
  */
-function updateWorkInProgress(): Hook {
+function updateWorkInProgressHook(): Hook {
 	let nextCurrentHook: Hook | null;
 
 	if (currentHook === null) {
@@ -303,7 +310,7 @@ function mountState<State>(
 	initialState: (() => State) | State
 ): [State, Dispatch<State>] {
 	// 找到当前 useState 对应的 hook 数据
-	const hook = mountWorkInProgress();
+	const hook = mountWorkInProgressHook();
 	// 如果 initialState 是函数，则执行函数获取状态，否则直接使用 initialState
 	let memoizedState;
 	if (initialState instanceof Function) {
@@ -317,6 +324,7 @@ function mountState<State>(
 	// 将更新队列和计算后的状态赋值给 hook
 	hook.updateQueue = queue;
 	hook.memoizedState = memoizedState;
+	hook.baseState = memoizedState;
 
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	// @ts-ignore
@@ -325,6 +333,45 @@ function mountState<State>(
 	queue.dispatch = dispatch;
 
 	return [memoizedState, dispatch];
+}
+
+function mountTransition(): [boolean, (callback: () => void) => void] {
+	const [isPending, setPending] = mountState(false);
+	const hook = mountWorkInProgressHook();
+	const start = startTransition.bind(null, setPending);
+	hook.memoizedState = start;
+	return [isPending, start];
+}
+
+function updateTransition(): [boolean, (callback: () => void) => void] {
+	const [isPending] = updateState();
+	const hook = updateWorkInProgressHook();
+	const start = hook.memoizedState;
+	return [isPending as boolean, start];
+}
+
+function startTransition(setPending: Dispatch<boolean>, callback: () => void) {
+	setPending(true);
+
+	const prevTransition = currentBatchConfig.transition;
+	currentBatchConfig.transition = 1;
+	callback();
+
+	setPending(false);
+
+	currentBatchConfig.transition = prevTransition;
+}
+
+function mountRef<T>(initialValue: T): { current: T } {
+	const hook = mountWorkInProgressHook();
+	const ref = { current: initialValue };
+	hook.memoizedState = ref;
+	return ref;
+}
+
+function updateRef<T>(initialValue: T): { current: T } {
+	const hook = updateWorkInProgressHook();
+	return hook.memoizedState;
 }
 
 /**
@@ -348,7 +395,7 @@ function dispatchSetState<State>(
  * @description 组件 mount 时，创建 hooks 集合
  * @returns Hook
  */
-function mountWorkInProgress(): Hook {
+function mountWorkInProgressHook(): Hook {
 	const hook: Hook = {
 		memoizedState: null,
 		next: null,
@@ -372,4 +419,14 @@ function mountWorkInProgress(): Hook {
 	}
 
 	return workInProgressHook;
+}
+
+function readContext<T>(context: ReactContext<T>): T {
+	const consumer = currentlyRenderingFiber;
+	if (consumer === null) {
+		throw new Error('请在函数组件内调用 hook');
+	}
+	const value = context._currentValue;
+	console.log(context);
+	return value;
 }

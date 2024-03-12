@@ -236,6 +236,19 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 		return firstNewFiber;
 	}
 
+	function getElementKeyToUse(element: any, index?: number) {
+		if (
+			Array.isArray(element) ||
+			typeof element === 'string' ||
+			typeof element === 'number' ||
+			element === undefined ||
+			element === null
+		) {
+			return index;
+		}
+		return element.key !== null ? element.key : index;
+	}
+
 	/**
 	 * @description 根据 Map 查找是否可复用
 	 * @param returnFiber 父 fiberNode
@@ -251,7 +264,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 		element: any
 	): FiberNode | null {
 		// 如果 key 为 null，index 代替 key
-		const keyToUse = element.key !== null ? element.key : index;
+		const keyToUse = getElementKeyToUse(element, index);
 		// 通过 key 查找是否可复用
 		const before = existingChildren.get(keyToUse);
 

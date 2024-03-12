@@ -1,11 +1,18 @@
 import { Props, Key, Ref, ReactElementType } from 'shared/ReactTypes';
-import { FunctionComponent, HostComponent, WorkTag } from './workTag';
+import {
+	ContextProvider,
+	FunctionComponent,
+	HostComponent,
+	SuspenseComponent,
+	WorkTag
+} from './workTag';
 import { Flags, NoFlags } from './fiberFlags';
 import { Container } from 'hostConfig';
 import { Fragment } from './workTag';
 import { Lane, Lanes, NoLane, NoLanes } from './fiberLanes';
 import { Effect } from './fiberHooks';
 import { CallbackNode } from 'scheduler';
+import { REACT_PROVIDER_TYPE, REACT_SUSPENSE_TYPE } from 'shared/ReactSymbol';
 
 export class FiberNode {
 	// 类型
@@ -152,6 +159,7 @@ export const createWorkInProgress = (
 	wip.child = current.child;
 	wip.memoizedProps = current.memoizedProps;
 	wip.memoizedState = current.memoizedState;
+	wip.ref = current.ref;
 
 	return wip;
 };
@@ -162,18 +170,26 @@ export const createWorkInProgress = (
  * @returns FiberNode
  */
 export function createFiberFormElement(element: ReactElementType): FiberNode {
-	const { type, key, props } = element;
+	const { type, key, props, ref } = element;
 	let fiberTag: WorkTag = FunctionComponent;
 
 	if (typeof type === 'string') {
 		// <div></div> type : string
 		fiberTag = HostComponent;
+	} else if (
+		typeof type === 'object' &&
+		type.$$typeof === REACT_PROVIDER_TYPE
+	) {
+		fiberTag = ContextProvider;
+	} else if (type === REACT_SUSPENSE_TYPE) {
+		fiberTag = SuspenseComponent;
 	} else if (typeof type !== 'function' && __DEV__) {
 		console.warn('未定义的 type 类型', element);
 	}
 
 	const fiber = new FiberNode(fiberTag, props, key);
 	fiber.type = type;
+	fiber.ref = ref;
 	return fiber;
 }
 

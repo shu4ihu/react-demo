@@ -6,13 +6,15 @@ import {
 } from 'hostConfig';
 import { FiberNode } from './fiber';
 import {
+	ContextProvider,
 	Fragment,
 	FunctionComponent,
 	HostComponent,
 	HostRoot,
 	HostText
 } from './workTag';
-import { NoFlags, Update } from './fiberFlags';
+import { NoFlags, Ref, Update } from './fiberFlags';
+import { popProvider } from './fiberContext';
 
 function markUpdate(fiber: FiberNode) {
 	fiber.flags |= Update;
@@ -37,6 +39,11 @@ export const completeWork = (wip: FiberNode) => {
 				// 如果需要监听所有 props 的变化比较麻烦，所以这里不实现，直接更新
 				// updateFiberProps(wip.stateNode, wip.pendingProps);
 				markUpdate(wip);
+
+				// 标记 Ref
+				if (current.ref !== wip.ref) {
+					markRef(wip);
+				}
 			} else {
 				// mount
 				// 构建 DOM，然后将 DOM 插入到 DOM 树中
@@ -44,6 +51,11 @@ export const completeWork = (wip: FiberNode) => {
 				const instance = createInstance(wip.type, newProps);
 				appendAllChildren(instance, wip);
 				wip.stateNode = instance;
+
+				// 标记 Ref
+				if (wip.ref !== null) {
+					markRef(wip);
+				}
 			}
 			// 冒泡 flags
 			bubbleProperties(wip);
@@ -68,6 +80,11 @@ export const completeWork = (wip: FiberNode) => {
 		case HostRoot:
 		case FunctionComponent:
 		case Fragment:
+			bubbleProperties(wip);
+			return null;
+		case ContextProvider:
+			const context = wip.type._context;
+			popProvider(context);
 			bubbleProperties(wip);
 			return null;
 
@@ -146,4 +163,8 @@ function bubbleProperties(wip: FiberNode) {
 	// console.log(subtreeFlags, 'subtreeFlags');
 	wip.subtreeFlags |= subtreeFlags;
 	// console.log(wip.subtreeFlags, 'wip.subtreeFlags', wip);
+}
+
+function markRef(fiber: FiberNode) {
+	fiber.flags |= Ref;
 }
